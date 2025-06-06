@@ -24,14 +24,17 @@ if settings.startup["rampant-evolution--shortcut-bar"].value then
                 action = "lua",
                 localised_name = {"controls.rampant-evolution--toggle_evolution_info"},
                 toggleable = true,
-                icon =
-                    {
-                        filename = "__core__/graphics/icons/alerts/warning-icon.png",
-                        priority = "extra-high-no-scale",
-                        scale = 0.25,
-                        size = 64,
-                        flags = {"icon"}
-                    }
+                -- icons =
+                --     {
+                icon = "__core__/graphics/icons/alerts/warning-icon.png",
+                    --     -- priority = "extra-high-no-scale",
+                    --     scale = 0.25,
+                icon_size = 64,
+                    --     -- flags = {"icon"}
+                    -- }
+                small_icon = "__core__/graphics/icons/alerts/warning-icon.png",
+                small_icon_size = 64,
+
             }
     })
 end

@@ -107,7 +107,7 @@ end
 local function variableInterpolation(percent, min, max, exponent)
     return ((max - min) * (percent^exponent)) + min
 end
-
+-- requires me to add in multi surfacecompatabillity
 local function onStatsGrabPollution()
     local pollutionStats = game.pollution_statistics
     local counts = pollutionStats.output_counts
@@ -256,18 +256,20 @@ local function onModSettingsChange(event)
     world.wormLookup = {}
     world.unitLookup = {}
 
+    -- if calculate when settigns change is true, reset evolution, and recalculate a new value
     if settings.global["rampant-evolution--recalculateAllEvolution"].value then
         reset()
-        game.forces.enemy.evolution_factor = 0
+        game.forces.enemy.set_evolution_factor(0)
         game.print({"description.rampant-evolution--refreshingEvolution"})
     end
 
-    for entityName, entityPrototype in pairs(game.entity_prototypes) do
-        if (entityPrototype.type == "unit-spawner") and sFind(entityName, "-spawner") then
+    -- builds a table of the various types of nest, worns, and enimies in the game
+    for entityName, entityPrototype in pairs(prototypes["entity"]) do
+        if (entityPrototype.type == "unit-spawner") and sFind(entityName, "%-spawner") then
             world.spawnerLookup[entityName] = 1
-        elseif (entityPrototype.type == "unit-spawner") and sFind(entityName, "-hive") then
+        elseif (entityPrototype.type == "unit-spawner") and sFind(entityName, "%-hive") then
             world.hiveLookup[entityName] = 1
-        elseif (entityPrototype.type == "turret") and sFind(entityName, "-worm") then
+        elseif (entityPrototype.type == "turret") and sFind(entityName, "%-worm") then
             world.wormLookup[entityName] = 1
         elseif (entityPrototype.type == "unit") and (sFind(entityName, "biter") or sFind(entityName, "spitter")) then
             world.unitLookup[entityName] = 1
@@ -304,15 +306,16 @@ local function onModSettingsChange(event)
         world.researchCurrent[index] = 0
     end
 
+    -- sets up the weights for science based 
     local totalTechnology = 0
     local includeUpgrades = settings.global["rampant-evolution--researchEvolutionCapIncludeUpgrades"].value
-
-    for technologyName, technologyPrototype in pairs(game.technology_prototypes) do
+    local filteredTech = prototypes.get_technology_filtered{
+        {filter = "enabled"},
+        {filter = "hidden", mode = "and", invert = true}
+    }
+    for technologyName, technologyPrototype in pairs(filteredTech) do
         local highestOrder = -1
-
         if not technologyPrototype.research_unit_count_formula
-            and technologyPrototype.enabled
-            and not technologyPrototype.hidden
             and ((not technologyPrototype.upgrade) or (technologyPrototype.upgrade and includeUpgrades))
         then
             for _, ingredient in pairs(technologyPrototype.research_unit_ingredients) do
@@ -394,8 +397,9 @@ local function onModSettingsChange(event)
         structureTypeLookup[structure] = {world.evolutionPerHighPlayer, "highPlayer"}
     end
 
+    -- builds a lookup table of every entity prototype in the game. based on the name its only supposed to contain entities the player ccan use, but it contains all entities.
     world.playerStructureLookup = {}
-    for entityName, entityPrototype in pairs(game.entity_prototypes) do
+    for entityName, entityPrototype in pairs(prototypes["entity"]) do
         local structureType = structureTypeLookup[entityPrototype.type]
         if structureType then
             world.playerStructureLookup[entityName] = structureType
@@ -715,15 +719,15 @@ local function onProcessingWrapper(event)
 end
 
 local function onInit()
-    global.world = {}
+    storage.world = {}
 
-    world = global.world
+    world = storage.world
 
     onConfigChanged()
 end
 
 local function onLoad()
-    world = global.world
+    world = storage.world
 end
 
 local function onLuaShortcut(event)
